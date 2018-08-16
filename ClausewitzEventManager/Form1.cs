@@ -15,6 +15,8 @@ namespace ClausewitzEventManager
         public Form1()
         {
             InitializeComponent();
+
+            this.label1.Text = "hello world";
         }
     }
 }
