@@ -11,22 +11,27 @@ namespace ClausewitzEventManager
     {
         static string ck2dir;
 
-        static void FindCK2Folder()
+        public static void FindCK2Folder()
         {
             string start = @"C:\Program Files (x86)\Paradox Interactive";
             if (Directory.Exists(start))
             {
                 foreach( string dir in Directory.GetDirectories(start))
                 {
-                    string sub = dir.Substring(0, Math.Min(dir.Length, 8));
+                    string sub = Path.GetFileName(dir).Substring(0, Math.Min(dir.Length, 8));
                     if (sub == "Crusader")
                     {
                         ck2dir = start + @"\" + sub;
+                        Debug.Log("Found dir:  " + ck2dir);
                         return;
                     }
                 }
             }
         }
 
+        internal static string GetDir()
+        {
+            return ck2dir;
+        }
     }
 }
