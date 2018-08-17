@@ -17,16 +17,25 @@ namespace ClausewitzEventManager
         public MainForm()
         {
             InitializeComponent();
+            console.Lines = new string[100];
             if (instance == null)
                 instance = this;
+            Shown += MainForm_Shown;
+        }
 
-            this.label1.Text = "test: " + DirectoryManager.GetDir();
+        private void MainForm_Shown(Object sender, EventArgs e)
+        {
+            this.console.Text = "test: " + DirectoryManager.GetDir();
             DirectoryManager.FindCK2Folder();
+            System.Threading.Thread.Sleep(2000);
+            Parser.ParseCommon(DirectoryManager.GetDir());
         }
 
         internal void AddToLog(string s)
         {
-            this.label1.Text = s + "\n" + this.label1.Text;
+            console.AppendText(Environment.NewLine + s);
+            console.ScrollToCaret();
+            //this.console.Text = s + "\n" + this.console.Text;
         }
     }
 }

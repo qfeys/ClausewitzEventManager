@@ -28,26 +28,31 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.label1 = new System.Windows.Forms.Label();
+            this.console = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
-            // label1
+            // console
             // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 396);
-            this.label1.MaximumSize = new System.Drawing.Size(800, 0);
-            this.label1.MinimumSize = new System.Drawing.Size(800, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(800, 13);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "Console";
+            this.console.BackColor = System.Drawing.SystemColors.ControlDark;
+            this.console.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.console.Location = new System.Drawing.Point(12, 348);
+            this.console.MaximumSize = new System.Drawing.Size(800, 85);
+            this.console.MinimumSize = new System.Drawing.Size(800, 85);
+            this.console.Multiline = true;
+            this.console.Name = "console";
+            this.console.ReadOnly = true;
+            this.console.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.console.Size = new System.Drawing.Size(800, 85);
+            this.console.TabIndex = 0;
+            this.console.Text = "CONSOLE";
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(826, 445);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.console);
             this.Name = "MainForm";
             this.Text = "MainForm";
             this.ResumeLayout(false);
@@ -57,7 +62,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox console;
     }
 }
 
