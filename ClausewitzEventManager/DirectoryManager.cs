@@ -21,7 +21,7 @@ namespace ClausewitzEventManager
                     string sub = Path.GetFileName(dir).Substring(0, Math.Min(dir.Length, 8));
                     if (sub == "Crusader")
                     {
-                        ck2dir = start + @"\" + sub;
+                        ck2dir = dir;
                         Debug.Log("Found dir:  " + ck2dir);
                         return;
                     }
