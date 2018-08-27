@@ -125,8 +125,13 @@ namespace ClausewitzEventManager
                             words.Add(new StringAndLoc(currentWord, i + 1));
                             currentWord = null;
                         } else if (c == '=' && words.Last() == "=") // Double '=' - ignore
-                            continue; 
-                        words.Add(new StringAndLoc(c.ToString(), i + 1));
+                            continue;
+                        else if (c == '{' && words.Last() != "=" && words.Last().s.Count() > 1)
+                        {       // There is a '{' that does not follow a '=', but a word/value. Presumably, there is a '=' missing.
+                            words.Add(new StringAndLoc("=", i + 1));
+                            Debug.Log("An '=' has been added in " + path + " on line " + i + 1);
+                        }
+                    words.Add(new StringAndLoc(c.ToString(), i + 1));
                     }
                     else if (c == '"')
                     {
