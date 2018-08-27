@@ -84,10 +84,12 @@ namespace ClausewitzEventManager
 
             /// Step 1: subdivide the text into strings of either: 
             ///         -one word 
+            ///         -one region of words surrounded by quotes (")
             ///         -open bracket '{' 
             ///         -close bracket '}' or 
             ///         -equality'='
             List<StringAndLoc> words = new List<StringAndLoc>();
+            bool quotesOpen = false;
             for (int i = 0; i < lines.Count; i++)
             {
                 string currentWord = null;
@@ -96,7 +98,17 @@ namespace ClausewitzEventManager
                     char c = lines[i][j];
                     if (c == '#')
                         break;
-                    if (c == ' ' || c == '\n' || c == '\t' || c == '\r')
+                    if (quotesOpen)
+                    {
+                        if (c == '"')
+                        {
+                            words.Add(new StringAndLoc(currentWord, i + 1));
+                            currentWord = null;
+                            quotesOpen = false;
+                        } else
+                            currentWord += c;
+                    }
+                    else if (c == ' ' || c == '\n' || c == '\t' || c == '\r')
                     {
                         if (currentWord != null)
                         {
@@ -112,6 +124,11 @@ namespace ClausewitzEventManager
                             currentWord = null;
                         }
                         words.Add(new StringAndLoc(c.ToString(), i + 1));
+                    }
+                    else if (c == '"')
+                    {
+                        quotesOpen = true;
+                        currentWord = "";
                     }
                     else
                     {
