@@ -27,7 +27,7 @@ namespace ClausewitzEventManager
         {
             this.console.Text = "test: " + DirectoryManager.GetDir();
             DirectoryManager.FindCK2Folder();
-            //Parser.Parse(@"C:\Program Files (x86)\Paradox Interactive\Crusader Kings II The Reaper's Due\common\traits\01_traits.txt");
+            //Parser.Parse(@"C:\Program Files (x86)\Paradox Interactive\Crusader Kings II Jade Dragon\common\traits\01_traits.txt");
             Parser.ParseCommon(DirectoryManager.GetDir());
         }
 

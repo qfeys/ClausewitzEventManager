@@ -177,11 +177,22 @@ namespace ClausewitzEventManager
             if (words[startPoint + 1] != "=" || words[startPoint + 2] != "{")
                 throw new Item.BadModException(master);
             int currentPos = startPoint + 3;
+            int nests = 0;
             while (currentPos < words.Count)
             {
                 if (words[currentPos] == "}") // We have reached the end of this Item
                 {
-                    return master;
+                    if(nests == 0)
+                        return master;
+                    else
+                    {
+                        nests--;
+                        currentPos++;
+                    }
+                }else if(words[currentPos] == "{")  // We found a aesthetic nest
+                {
+                    nests++;
+                    currentPos++;
                 }
                 else if (words[currentPos + 2] == "{")
                 {     // This is a new list item
@@ -196,16 +207,32 @@ namespace ClausewitzEventManager
                             else if (words[currentPos] == "}") openBrackets--;
                             currentPos++;
                         }
-                    } else
+                    }
+                    else
                     {   // This is a new value list item
                         Item val_list_it = Item.SimpleListItem(words[currentPos], path, words[currentPos].loc);
                         int i = 3;
-                        while (words[currentPos+i] != "}")
+                        int itemNests = 0;
+                        while (true)
                         {
-                            if (words[currentPos + i] == "=" || words[currentPos + i] == "{")
+                            if (words[currentPos + i] == "=")
                                 throw new Item.BadModException(val_list_it);
-                            val_list_it.AddValue(words[currentPos + i]);
-                            i++;
+                            else if(words[currentPos + i] == "{")
+                            {
+                                itemNests++;
+                                i++;
+                            }else if(words[currentPos + i] == "}")
+                            {
+                                if (itemNests == 0)
+                                    break;
+                                else
+                                    itemNests--;
+                                i++;
+                            } else
+                            {
+                                val_list_it.AddValue(words[currentPos + i]);
+                                i++;
+                            }
                         }
                         currentPos += i + 1;
                         master.AddItem(val_list_it);
