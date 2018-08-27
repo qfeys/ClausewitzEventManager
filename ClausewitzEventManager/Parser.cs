@@ -98,6 +98,8 @@ namespace ClausewitzEventManager
                     char c = lines[i][j];
                     if (c == '#')
                         break;
+                    if (c == '<' || c == '>')
+                        c = '=';
                     if (quotesOpen)
                     {
                         if (c == '"')
@@ -122,7 +124,8 @@ namespace ClausewitzEventManager
                         {
                             words.Add(new StringAndLoc(currentWord, i + 1));
                             currentWord = null;
-                        }
+                        } else if (c == '=' && words.Last() == "=") // Double '=' - ignore
+                            continue; 
                         words.Add(new StringAndLoc(c.ToString(), i + 1));
                     }
                     else if (c == '"')
@@ -147,7 +150,8 @@ namespace ClausewitzEventManager
             }
             if(words.Count == 0)
             {
-                throw new Item.BadModException(Item.ValueItem("NaN","NaN",path,0));
+                return null;
+                //throw new Item.BadModException(Item.ValueItem("NaN","NaN",path,0));
             }
 
             /// Step 2: Put the list of strings into a data structure
@@ -159,6 +163,11 @@ namespace ClausewitzEventManager
                 throw new FormatException("The brackets in the file: " + path + " are not balanced. '{' is found " + words.Count(s => s == "{") +
                     " times while '}' is found " + words.Count(s => s == "}") + " times.");
             }
+            // padd "words" to create overarching item
+            words.Insert(0, new StringAndLoc("{", 0));
+            words.Insert(0, new StringAndLoc("=", 0));
+            words.Insert(0, new StringAndLoc(Path.GetFileNameWithoutExtension(path), 0));
+            words.Add(new StringAndLoc("}", lines.Count));
 
             return ExtractData(words,path);
         }
