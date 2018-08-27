@@ -10,7 +10,7 @@ namespace ClausewitzEventManager.Scripting
     {
         public Trigger(Parser.Item item)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
     }
 }

@@ -15,7 +15,7 @@ namespace ClausewitzEventManager
         enum EventType { CHARACTER_EVENT, LONG_CHARACTER_EVENT, LETTER_EVENT, NARRATIVE_EVENT, PROVINCE_EVENT, DIPLORESPONSE_EVENT, UNIT_EVENT, SOCIETY_QUEST_EVENT }
         EventType eventType;
 
-        LocalisationLink title;
+        ComplexTitle title;
         List<TriggeredDescription> descriptions;
         GFX_Link defaultPicture;
         GFX_Link border;
@@ -34,6 +34,12 @@ namespace ClausewitzEventManager
         bool show_from_from;
         bool show_from_from_from;
         bool notification;
+        string portrait;
+        enum OffMapModes { ONLY, ALLOW, NO }
+        OffMapModes offmap;
+        string window; // Used for Jade dragon. Only known valid parameter: EventWindowOffmap
+        GFX_Link background; // Used only together with window
+        string quest_target; // Used for SOCIETY_QUEST_EVENT
 
         // Pre-triggers
         // Filtering
@@ -60,48 +66,57 @@ namespace ClausewitzEventManager
         bool is_sick;
         string has_character_flag; // Only use one
         string has_global_flag; // Only use one
+        string has_flag; // Less used
         bool war;
         Culture culture;
         CultureGroup culture_group;
         bool is_in_society;
 
         Trigger trigger;
+        Trigger major_trigger;
         MeanTimeToHappen mtth;
         WieghtMultiplier weight_multiplier;
 
         Command immediate;
+        Command fail_trigger_effect;
         Command after;
 
-        Option option1;
-        Option option2;
-        Option option3;
-        Option option4;
+        List<Option> options;
 
 
         CW_Event(EventType eventType)
         {
             this.eventType = eventType;
+            title = new ComplexTitle();
             descriptions = new List<TriggeredDescription>();
             lacks_dlc = new List<string>();
             has_dlc = new List<string>();
+            options = new List<Option>();
         }
 
-        static CW_Event FromParsedItem(Parser.Item root)
+        static public CW_Event FromParsedItem(Parser.Item root)
         {
             CW_Event ev = new CW_Event((EventType)Enum.Parse(typeof(EventType), root.name, true));
             foreach (Parser.Item item in root.GetChilderen())
             {
-                switch (item.name)
+                switch (item.name.ToLower())
                 {
                 case "id":
                     string id = item.GetString();
                     string[] x = id.Split('.');
-                    ev.name_space = x[0];
-                    ev.id = int.Parse(x[1]);
+                    if (x.Length == 2)
+                    {
+                        ev.name_space = x[0];
+                        ev.id = int.Parse(x[1]);
+                    } else
+                    {
+                        ev.name_space = null;
+                        ev.id = int.Parse(id);
+                    }
                     break;
                 // Flags
                 case "title":
-                    ev.title = LocalisationLink.FromTag(item.GetString());
+                    ev.title.Add(item);
                     break;
                 case "desc":
                     ev.descriptions.Add(new TriggeredDescription(item));
@@ -125,6 +140,11 @@ namespace ClausewitzEventManager
                 case "show_from_from_from": ev.show_from_from_from = item.GetBool(); break;
                 case "sound": /*Find soound file or something*/ break;
                 case "notification": ev.notification = item.GetBool(); break;
+                case "portrait": ev.portrait = item.GetString(); break;
+                case "offmap": ev.offmap = item.GetEnum<OffMapModes>(); break;
+                case "window": ev.window = item.GetString(); break;
+                case "background": ev.background = GFX_Link.FromTag(item.GetString()); break;
+                case "quest_target": ev.quest_target = item.GetString();break;
                 // Pre triggers
                 case "only_playable": ev.only_playable = item.GetBool(); break;
                 case "is_part_of_plot": ev.is_part_of_plot = item.GetBool(); break;
@@ -141,6 +161,7 @@ namespace ClausewitzEventManager
                 case "only_men": ev.only_men = item.GetBool(); break;
                 case "only_women": ev.only_women = item.GetBool(); break;
                 case "only_capable": ev.only_capable = item.GetBool(); break;
+                case "capable_only": ev.only_capable = item.GetBool(); break;
                 case "lacks_dlc":
                     ev.lacks_dlc.Add(item.GetString());
                     break;
@@ -156,6 +177,7 @@ namespace ClausewitzEventManager
                 case "is_sick": ev.is_sick = item.GetBool(); break;
                 case "has_character_flag": ev.has_character_flag = item.GetString(); break;
                 case "has_global_flag": ev.has_global_flag = item.GetString(); break;
+                case "has_flag": ev.has_flag = item.GetString(); break;
                 case "war": ev.war = item.GetBool(); break;
                 case "culture":
                     ev.culture = Culture.FromName(item.GetString());
@@ -168,26 +190,23 @@ namespace ClausewitzEventManager
                 case "trigger":
                     ev.trigger = new Trigger(item);
                     break;
-                case "mean_time_to_happen ":
+                case "major_trigger":
+                    ev.major_trigger = new Trigger(item);
+                    break;
+                case "mean_time_to_happen":
                     ev.mtth = new MeanTimeToHappen(item);
                     break;
-                case "weight_multiplier ":
+                case "weight_multiplier":
                     ev.weight_multiplier = new WieghtMultiplier(item);
                     break;
                 case "immediate":
                     ev.immediate = new Command(item);
                     break;
+                case "fail_trigger_effect":
+                    ev.fail_trigger_effect = new Command(item);
+                    break;
                 case "option":
-                    if (ev.option1 == null)
-                        ev.option1 = new Option(item);
-                    else if (ev.option2 == null)
-                        ev.option2 = new Option(item);
-                    else if (ev.option3 == null)
-                        ev.option3 = new Option(item);
-                    else if (ev.option4 == null)
-                        ev.option4 = new Option(item);
-                    else
-                        throw new Parser.Item.BadModException(item, "Only 4 options are allowed.");
+                    ev.options.Add(new Option(item));
                     break;
                 case "after":
                     ev.after = new Command(item);
@@ -200,33 +219,85 @@ namespace ClausewitzEventManager
         }
 
 
-
+        public override string ToString()
+        {
+            if (title != null && title.Value != null && title.Value.Exists())
+                return title.Value.Value;
+            else
+                return name_space + "." + id;
+        }
 
         class TriggeredDescription
         {
             Trigger trigger;
             LocalisationLink text;
             GFX_Link picture;
+            // sound ??
 
             public TriggeredDescription(Parser.Item root)
             {
-                foreach (Parser.Item item in root.GetChilderen())
-                {
-                    switch (item.name)
+                if (root.IsValue())
+                    text = LocalisationLink.FromTag(root.GetString());
+                else
+                    foreach (Parser.Item item in root.GetChilderen())
                     {
-                    case "trigger":
-                        trigger = new Trigger(item);
-                        break;
-                    case "text":
-                        text = LocalisationLink.FromTag(item.GetString());
-                        break;
-                    case "picture":
-                        picture = GFX_Link.FromTag(item.GetString());
-                        break;
-                    default:
-                        throw new Parser.Item.BadModException(item, "Did not recognise tag " + item.name);
+                        switch (item.name)
+                        {
+                        case "trigger":
+                            trigger = new Trigger(item);
+                            break;
+                        case "text":
+                            text = LocalisationLink.FromTag(item.GetString());
+                            break;
+                        case "picture":
+                            picture = GFX_Link.FromTag(item.GetString());
+                            break;
+                        case "sound":
+                            // ???????
+                            break;
+                        default:
+                            throw new Parser.Item.BadModException(item, "Did not recognise tag " + item.name);
+                        }
                     }
-                }
+            }
+        }
+
+        private class ComplexTitle
+        {
+            bool iscomplex = false;
+
+            LocalisationLink simpleTitle;
+            List<Tuple<LocalisationLink, Trigger>> titles;
+
+            public LocalisationLink Value { get { return iscomplex ? titles[0].Item1 : simpleTitle; } }
+
+            public ComplexTitle() { }
+
+            public void Add(Parser.Item root)
+            {
+                if (iscomplex == false && simpleTitle == null && root.IsValue())
+                    simpleTitle = LocalisationLink.FromTag(root.GetString());
+                else if (iscomplex == false && simpleTitle != null && root.IsValue())
+                {
+                    iscomplex = true;
+                    titles = new List<Tuple<LocalisationLink, Trigger>>() { new Tuple<LocalisationLink, Trigger>(simpleTitle,null),
+                                                                            new Tuple<LocalisationLink, Trigger>(LocalisationLink.FromTag(root.GetString()),null)};
+                } else if (iscomplex == false && simpleTitle == null && root.IsValue() == false)
+                {
+                    iscomplex = true;
+                    titles = new List<Tuple<LocalisationLink, Trigger>>() {
+                        new Tuple<LocalisationLink, Trigger>(LocalisationLink.FromTag(root.GetString("text")),new Trigger(root.GetItem("trigger"))) };
+                } else if (iscomplex == false && simpleTitle != null && root.IsValue() == false)
+                {
+                    iscomplex = true;
+                    titles = new List<Tuple<LocalisationLink, Trigger>>() {
+                        new Tuple<LocalisationLink, Trigger>(simpleTitle,null),
+                        new Tuple<LocalisationLink, Trigger>(LocalisationLink.FromTag(root.GetString("text")),new Trigger(root.GetItem("trigger")))
+                    };
+                } else if (iscomplex && root.IsValue())
+                    titles.Add(new Tuple<LocalisationLink, Trigger>(LocalisationLink.FromTag(root.GetString()), null));
+                else
+                    titles.Add(new Tuple<LocalisationLink, Trigger>(LocalisationLink.FromTag(root.GetString("text")), new Trigger(root.GetItem("trigger"))));
             }
         }
 
@@ -263,7 +334,7 @@ namespace ClausewitzEventManager
                         trigger = new Trigger(item);
                         break;
                     default:
-                        command.add(item);
+                        command.Add(item);
                         break;
                     }
                 }

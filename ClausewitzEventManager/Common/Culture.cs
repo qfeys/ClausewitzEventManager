@@ -10,7 +10,8 @@ namespace ClausewitzEventManager.Common
     {
         internal static Culture FromName(string v)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            return null;
         }
     }
 
@@ -18,7 +19,8 @@ namespace ClausewitzEventManager.Common
     {
         internal static CultureGroup FromName(string v)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            return null;
         }
     }
 }

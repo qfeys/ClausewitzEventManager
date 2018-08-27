@@ -29,7 +29,23 @@ namespace ClausewitzEventManager
             DirectoryManager.FindCK2Folder();
             //Parser.Parse(@"C:\Program Files (x86)\Paradox Interactive\Crusader Kings II Jade Dragon\common\traits\01_traits.txt");
             //Parser.Parse(@"C:\Program Files (x86)\Paradox Interactive\Crusader Kings II Jade Dragon\common\region_colors.txt");
-            Parser.ParseEvents(DirectoryManager.GetDir());
+            List<Parser.Item> coreEvents = Parser.ParseEvents(DirectoryManager.GetDir());
+            Data.SetCoreEvents(coreEvents);
+            PopulateTree();
+        }
+
+        private void PopulateTree()
+        {
+            TreeNode core = new TreeNode("core");
+            foreach (Data.EventList file in Data.CoreEvents)
+            {
+                TreeNode fileNode = core.Nodes.Add(file.Name);
+                foreach(CW_Event ev in file.List)
+                {
+                    fileNode.Nodes.Add(ev.ToString());
+                }
+            }
+            treeView1.Nodes.Add(core);
         }
 
         internal void AddToLog(string s)

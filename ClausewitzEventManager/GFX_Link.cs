@@ -10,7 +10,8 @@ namespace ClausewitzEventManager
     {
         internal static GFX_Link FromTag(string v)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            return null;
         }
     }
 }

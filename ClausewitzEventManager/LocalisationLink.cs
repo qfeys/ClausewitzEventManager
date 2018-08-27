@@ -8,9 +8,17 @@ namespace ClausewitzEventManager
 {
     class LocalisationLink
     {
+        public string Value { get; internal set; }
+
         internal static LocalisationLink FromTag(string v)
         {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
+            return null;
+        }
+
+        internal bool Exists()
+        {
+            return false;
         }
     }
 }

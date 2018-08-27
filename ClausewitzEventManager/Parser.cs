@@ -50,16 +50,17 @@ namespace ClausewitzEventManager
             //files.ConvertAll(f => Parse(f));
         }
 
-        static public void ParseEvents(string path)
+        static public List<Item> ParseEvents(string path)
         {
             var files = Directory.GetFiles(path + @"\events\", "*.txt", SearchOption.AllDirectories).ToList();
             int succes = 0;
             int failure = 0;
+            List<Item> ret = new List<Item>();
             foreach (string f in files)
             {
                 try
                 {
-                    Parse(f);
+                    ret.Add(Parse(f));
                     succes++;
                 } catch (Item.BadModException e)
                 {
@@ -68,6 +69,7 @@ namespace ClausewitzEventManager
                 }
             }
             Debug.Log("Parsing: " + succes + " succeses and " + failure + " failures");
+            return ret;
             //files.ConvertAll(f => Parse(f));
         }
 
@@ -385,6 +387,8 @@ namespace ClausewitzEventManager
 
             internal List<Item> GetChilderen()
             {
+                if (itemType == ItemType.SIMPLE_LIST && valueList.Count == 0) // There was nothing in the list and the type was wrongly set
+                    return new List<Item>();
                 if (itemType != ItemType.ITEM_LIST) throw new Exception("You cannot retrive the childeren of a value object");
                 return itemList;
             }
@@ -404,7 +408,15 @@ namespace ClausewitzEventManager
             internal bool GetBool()
             {
                 if (itemType != ItemType.VALUE) throw new Exception("You cannot retrive a value from a list item");
-                return bool.Parse(value);
+                if (bool.TryParse(value, out bool ret) == false)
+                {
+                    if (value.ToLower() == "yes")
+                        ret = true;
+                    else if (value.ToLower() == "no")
+                        ret = false;
+                    else throw new Item.BadModException(this, "This is not a boolean value.");
+                }
+                return ret;
             }
 
             /// <summary>
@@ -416,7 +428,7 @@ namespace ClausewitzEventManager
             internal T GetEnum<T>()
             {
                 if (itemType != ItemType.VALUE) throw new Exception("You cannot retrive a value from a list item");
-                return (T)Enum.Parse(typeof(T), value);
+                return (T)Enum.Parse(typeof(T), value, true);
             }
 
             internal Item GetItem(string valueName)
