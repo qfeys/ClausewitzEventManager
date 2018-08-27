@@ -14,6 +14,8 @@ namespace ClausewitzEventManager
     {
         public static MainForm instance;
 
+        Dictionary<TreeNode, CW_Event> treeData;
+
         public MainForm()
         {
             InitializeComponent();
@@ -46,6 +48,21 @@ namespace ClausewitzEventManager
                 }
             }
             treeView1.Nodes.Add(core);
+        }
+
+        private void TreeView1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            TreeNode node = treeView1.SelectedNode;
+            if (treeData.ContainsKey(node))
+            {
+                CW_Event ev = treeData[node];
+                FormatEvent(ev);
+            }
+        }
+
+        private void FormatEvent(CW_Event ev)
+        {
+            throw new NotImplementedException();
         }
 
         internal void AddToLog(string s)
