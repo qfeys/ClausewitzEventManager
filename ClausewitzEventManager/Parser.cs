@@ -34,15 +34,36 @@ namespace ClausewitzEventManager
             var files = Directory.GetFiles(path + @"\common\", "*.txt", SearchOption.AllDirectories).ToList();
             int succes = 0;
             int failure = 0;
-            foreach(string f in files)
+            foreach (string f in files)
             {
                 try
                 {
                     Parse(f);
                     succes++;
-                }catch(Item.BadModException e)
+                } catch (Item.BadModException e)
                 {
-                    Debug.Log("Unable to parse " + f+ " because of "+ Environment.NewLine + "\t"+ e.Message);
+                    Debug.Log("Unable to parse " + f + " because of " + Environment.NewLine + "\t" + e.Message);
+                    failure++;
+                }
+            }
+            Debug.Log("Parsing: " + succes + " succeses and " + failure + " failures");
+            //files.ConvertAll(f => Parse(f));
+        }
+
+        static public void ParseEvents(string path)
+        {
+            var files = Directory.GetFiles(path + @"\events\", "*.txt", SearchOption.AllDirectories).ToList();
+            int succes = 0;
+            int failure = 0;
+            foreach (string f in files)
+            {
+                try
+                {
+                    Parse(f);
+                    succes++;
+                } catch (Item.BadModException e)
+                {
+                    Debug.Log("Unable to parse " + f + " because of " + Environment.NewLine + "\t" + e.Message);
                     failure++;
                 }
             }
@@ -135,7 +156,7 @@ namespace ClausewitzEventManager
         /// <returns></returns>
         static Item ExtractData(List<StringAndLoc> words, string path, int startPoint = 0)
         {
-            Item master = Item.ListItem(words[startPoint], path, words[startPoint].loc);
+            Item master = Item.ItemListItem(words[startPoint], path, words[startPoint].loc);
             if (words[startPoint + 1] != "=" || words[startPoint + 2] != "{")
                 throw new Item.BadModException(master);
             int currentPos = startPoint + 3;
@@ -147,14 +168,30 @@ namespace ClausewitzEventManager
                 }
                 else if (words[currentPos + 2] == "{")
                 {     // This is a new list item
-                    master.AddItem(ExtractData(words, path, currentPos));
-                    currentPos += 3;
-                    int openBrackets = 1;
-                    while (openBrackets > 0)    // Find the end of this section
-                    {
-                        if (words[currentPos] == "{") openBrackets++;
-                        else if (words[currentPos] == "}") openBrackets--;
-                        currentPos++;
+                    if(words[currentPos + 4] == "=")
+                    {   // This is a new item list item
+                        master.AddItem(ExtractData(words, path, currentPos));
+                        currentPos += 3;
+                        int openBrackets = 1;
+                        while (openBrackets > 0)    // Find the end of this section
+                        {
+                            if (words[currentPos] == "{") openBrackets++;
+                            else if (words[currentPos] == "}") openBrackets--;
+                            currentPos++;
+                        }
+                    } else
+                    {   // This is a new value list item
+                        Item val_list_it = Item.SimpleListItem(words[currentPos], path, words[currentPos].loc);
+                        int i = 3;
+                        while (words[currentPos+i] != "}")
+                        {
+                            if (words[currentPos + i] == "=" || words[currentPos + i] == "{")
+                                throw new Item.BadModException(val_list_it);
+                            val_list_it.AddValue(words[currentPos + i]);
+                            i++;
+                        }
+                        currentPos += i + 1;
+                        master.AddItem(val_list_it);
                     }
                 }
                 else // This is a new value item
@@ -197,8 +234,10 @@ namespace ClausewitzEventManager
         {
             public readonly string name;
             string value;
-            List<Item> list;
-            bool isValue;
+            List<string> valueList;
+            List<Item> itemList;
+            enum ItemType { VALUE, SIMPLE_LIST, ITEM_LIST}
+            ItemType itemType;
             public readonly Location location;
 
             Item(string name, string path, int line)
@@ -211,30 +250,44 @@ namespace ClausewitzEventManager
             {
                 return new Item(name, path, line) {
                     value = value,
-                    isValue = true
+                    itemType = ItemType.VALUE
                 };
             }
 
-            public static Item ListItem(string name, string path, int line)
+            public static Item SimpleListItem(string name, string path, int line)
             {
                 return new Item(name, path, line) {
-                    list = new List<Item>(),
-                    isValue = false
+                    valueList = new List<string>(),
+                    itemType = ItemType.SIMPLE_LIST
                 };
+            }
+
+            public static Item ItemListItem(string name, string path, int line)
+            {
+                return new Item(name, path, line) {
+                    itemList = new List<Item>(),
+                    itemType = ItemType.ITEM_LIST
+                };
+            }
+
+            public void AddValue(string name)
+            {
+                if (itemType != ItemType.SIMPLE_LIST) throw new BadModException(this);
+                valueList.Add(name);
             }
 
             public Item AddItem(string name, string value, string path, int line)
             {
-                if (isValue) throw new BadModException(this);
+                if (itemType != ItemType.ITEM_LIST) throw new BadModException(this);
                 Item ret = ValueItem(name, value, path, line);
-                list.Add(ret);
+                itemList.Add(ret);
                 return ret;
             }
 
             public Item AddItem(Item item)
             {
-                if (isValue) throw new BadModException(this);
-                list.Add(item);
+                if (itemType != ItemType.ITEM_LIST) throw new BadModException(this);
+                itemList.Add(item);
                 return item;
             }
 
@@ -242,41 +295,57 @@ namespace ClausewitzEventManager
             {
                 if (this == null) return item;
                 if (item == null) return this;
-                if (item.isValue || this.isValue)
+                if (item.itemType == ItemType.VALUE || this.itemType == ItemType.VALUE)
                     throw new Exception("You are trying to merge value items. You can only merge list items");
-                Item merge = new Item(this.name, null, 0) {
-                    isValue = false,
-                    list = new List<Item>(this.list)
-                };
-                foreach (Item it in item.list)
+                if (item.itemType == ItemType.ITEM_LIST && itemType == ItemType.ITEM_LIST)
                 {
-                    merge.list.RemoveAll(i => i.name == it.name);
-                    merge.list.Add(it);
-                }
-                return merge;
+                    Item merge = new Item(this.name, null, 0) {
+                        itemType = ItemType.ITEM_LIST,
+                        itemList = new List<Item>(this.itemList)
+                    };
+                    foreach (Item it in item.itemList)
+                    {
+                        merge.itemList.RemoveAll(i => i.name == it.name);
+                        merge.itemList.Add(it);
+                    }
+                    return merge;
+                } else if (item.itemType == ItemType.SIMPLE_LIST && itemType == ItemType.SIMPLE_LIST)
+                {
+                    Item merge = new Item(this.name, null, 0) {
+                        itemType = ItemType.SIMPLE_LIST,
+                        valueList = new List<string>(this.valueList)
+                    };
+                    foreach (string val in item.valueList)
+                    {
+                        merge.valueList.RemoveAll(v => v == val);
+                        merge.valueList.Add(val);
+                    }
+                    return merge;
+                } else
+                    throw new Exception("You are trying to merge a value list item with an item list item.");
             }
 
             internal List<Item> GetChilderen()
             {
-                if (isValue) throw new Exception("You cannot retrive the childeren of a value object");
-                return list;
+                if (itemType != ItemType.ITEM_LIST) throw new Exception("You cannot retrive the childeren of a value object");
+                return itemList;
             }
 
             internal string GetString()
             {
-                if (isValue == false) throw new Exception("You cannot retrive a value from a list item");
+                if (itemType != ItemType.VALUE) throw new Exception("You cannot retrive a value from a list item");
                 return value;
             }
 
             internal double GetNumber()
             {
-                if (isValue == false) throw new Exception("You cannot retrive a value from a list item");
+                if (itemType != ItemType.VALUE) throw new Exception("You cannot retrive a value from a list item");
                 return double.Parse(value);
             }
 
             internal bool GetBool()
             {
-                if (isValue == false) throw new Exception("You cannot retrive a value from a list item");
+                if (itemType != ItemType.VALUE) throw new Exception("You cannot retrive a value from a list item");
                 return bool.Parse(value);
             }
 
@@ -288,45 +357,45 @@ namespace ClausewitzEventManager
             /// <returns></returns>
             internal T GetEnum<T>()
             {
-                if (isValue == false) throw new Exception("You cannot retrive a value from a list item");
+                if (itemType != ItemType.VALUE) throw new Exception("You cannot retrive a value from a list item");
                 return (T)Enum.Parse(typeof(T), value);
             }
 
             internal Item GetItem(string valueName)
             {
-                if (isValue) throw new Exception("This function must be used on a list item");
-                return list.Find(i => i.name == valueName);
+                if (itemType != ItemType.ITEM_LIST) throw new Exception("This function must be used on a list item");
+                return itemList.Find(i => i.name == valueName);
             }
 
             internal string GetString(string valueName)
             {
-                if (isValue) throw new Exception("This function must be used on a list item");
-                if (list.Any(i => i.name == valueName))
-                    return list.Find(i => i.name == valueName).GetString();
+                if (itemType != ItemType.ITEM_LIST) throw new Exception("This function must be used on a list item");
+                if (itemList.Any(i => i.name == valueName))
+                    return itemList.Find(i => i.name == valueName).GetString();
                 return "";
             }
 
             internal double GetNumber(string valueName)
             {
-                if (isValue) throw new Exception("This function must be used on a list item");
-                if (list.Any(i => i.name == valueName))
-                    return list.Find(i => i.name == valueName).GetNumber();
+                if (itemType != ItemType.ITEM_LIST) throw new Exception("This function must be used on a list item");
+                if (itemList.Any(i => i.name == valueName))
+                    return itemList.Find(i => i.name == valueName).GetNumber();
                 return 0;
             }
 
             internal bool GetBool(string valueName, bool _default = false)
             {
-                if (isValue) throw new Exception("This function must be used on a list item");
-                if (list.Any(i => i.name == valueName))
-                    return list.Find(i => i.name == valueName).GetBool();
+                if (itemType != ItemType.ITEM_LIST) throw new Exception("This function must be used on a list item");
+                if (itemList.Any(i => i.name == valueName))
+                    return itemList.Find(i => i.name == valueName).GetBool();
                 return _default;
             }
 
             internal T GetEnum<T>(string valueName)
             {
-                if (isValue) throw new Exception("This function must be used on a list item");
-                if (list.Any(i => i.name == valueName))
-                    return list.Find(i => i.name == valueName).GetEnum<T>();
+                if (itemType != ItemType.ITEM_LIST) throw new Exception("This function must be used on a list item");
+                if (itemList.Any(i => i.name == valueName))
+                    return itemList.Find(i => i.name == valueName).GetEnum<T>();
                 return default(T);
             }
 
