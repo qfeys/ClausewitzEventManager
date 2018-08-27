@@ -8,5 +8,20 @@ namespace ClausewitzEventManager.Scripting
 {
     class Command
     {
+        private Parser.Item item;
+
+        public Command()
+        {
+        }
+
+        public Command(Parser.Item item)
+        {
+            this.item = item;
+        }
+
+        internal void add(Parser.Item item)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

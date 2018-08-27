@@ -8,5 +8,9 @@ namespace ClausewitzEventManager
 {
     class LocalisationLink
     {
+        internal static LocalisationLink FromTag(string v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

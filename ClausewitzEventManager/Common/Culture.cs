@@ -8,10 +8,17 @@ namespace ClausewitzEventManager.Common
 {
     class Culture
     {
+        internal static Culture FromName(string v)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     class CultureGroup
     {
-
+        internal static CultureGroup FromName(string v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

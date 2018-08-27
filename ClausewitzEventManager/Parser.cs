@@ -457,6 +457,12 @@ namespace ClausewitzEventManager
                 return default(T);
             }
 
+            internal bool IsValue()
+            {
+                if (itemType == ItemType.VALUE) return true;
+                return false;
+            }
+
 
 
             public struct Location
@@ -470,6 +476,10 @@ namespace ClausewitzEventManager
             public class BadModException : Exception
             {
                 public BadModException(Item item) : base("There is a problem in file " + item.location.path + " around line " + item.location.line + ".") { }
+
+                public BadModException(Item item, string v)
+                    : base("There is a problem in file " + item.location.path + " around line " + item.location.line + ". " + v) { }
+
                 protected BadModException(
                   System.Runtime.Serialization.SerializationInfo info,
                   System.Runtime.Serialization.StreamingContext context) : base(info, context) { }

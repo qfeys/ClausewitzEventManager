@@ -8,5 +8,9 @@ namespace ClausewitzEventManager.Scripting
 {
     class Trigger
     {
+        public Trigger(Parser.Item item)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
